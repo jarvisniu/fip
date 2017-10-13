@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<style type="text/css">
+
+		.imageContainer {
+			position: relative;
+			display: inline-block;
+			border: solid 10px gray;
+			max-width: 1000px;
+			cursor: crosshair;
+		}
+
+		.imageContainer img {
+			display: block;
+			width: 100%;
+		}
+
+		.padding-indicator {
+			position: absolute;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			border: solid 1px red;
+    		pointer-events: none;
+    		visibility: hidden;
+		}
+
+		.gap-indicator {
+			position: absolute;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			border: solid 1px blue;
+    		pointer-events: none;
+    		visibility: hidden;
+		}
+
+	</style>
+	<script src="../src/fip.js"></script>
+	<script src="../src/fip.find-padding.js"></script>
+	<script src="../src/fip.find-gap.js"></script>
+</head>
+<body>
+
+<div style="margin-bottom: 8px;">
+	下面图像上的红框表示检测到的四个方向外边距，蓝框表示检测到的竖栏间隔。</div>
+<div class="imageContainer">
+	<img src="../data/padding-gap.jpg">
+	<div class="padding-indicator"></div>
+	<div class="gap-indicator"></div>
+</div>
+
+<script type="text/javascript">
+
+	var imageDom = document.querySelector('img');
+	var imageProcessor;
+
+	imageDom.addEventListener('load', function () {
+		imageProcessor = new Fip(imageDom);
+
+		var domPaddingIndicator = document.querySelector('.padding-indicator');
+		var padding = imageProcessor.findPadding();
+		console.log('padding:', padding);
+		domPaddingIndicator.style.left = (padding.left * 100).toFixed(2) + '%';
+		domPaddingIndicator.style.width = ((padding.right - padding.left).toFixed(2) * 100) + '%';
+		domPaddingIndicator.style.top = (padding.top * 100).toFixed(2) + '%';
+		domPaddingIndicator.style.height = ((padding.bottom - padding.top) * 100).toFixed(2) + '%';
+		domPaddingIndicator.style.visibility = 'visible';
+		// find gap
+		var gap = imageProcessor.findGap();
+		console.log(gap);
+		var domGapIndicator = document.querySelector('.gap-indicator');
+		if (gap != null) {
+			domGapIndicator.style.left = (gap.left * 100).toFixed(2) + '%';
+			domGapIndicator.style.width = ((gap.right - gap.left) * 100).toFixed(2) + '%';
+		}
+		domGapIndicator.style.visibility = 'visible';
+	});
+
+</script>
+</body>
+</html>

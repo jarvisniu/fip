@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>定位点校准</title>
+	<script src="../dep/vue-2.4.4.js"></script>
+	<script src="../src/fip.js"></script>
+	<script src="../src/fip.pick-anchor.js"></script>
+	<style type="text/css">
+		* {
+			box-sizing: border-box;
+		}
+		.border {
+			border: solid 1px gray;
+			display: inline-block;
+		}
+		.image-container,
+		.canvas-container {
+			position: relative;
+			user-select: none;
+		}
+		.paper-image,
+		.canvas-container > canvas {
+			max-width: 100%;
+			max-height: 100%;
+			vertical-align: top;
+			-webkit-user-drag: none;
+		}
+		.canvas-container > canvas {
+			cursor: crosshair;
+		}
+		.anchor-src,
+		.anchor-des {
+			position: absolute;
+			border: solid 1px hsl(0, 0%, 25%);
+			border-radius: 50%;
+			width: 7px;
+			height: 7px;
+			margin-top: -3px;
+			margin-left: -3px;
+			pointer-events: none;
+		}
+		.anchor-src:hover,
+		.anchor-des:hover {
+			border-color: black;
+		}
+		.anchor-src {
+			background-color: hsla(0, 100%, 75%, 0.75);
+		}
+		.anchor-des {
+			background-color: hsla(60, 100%, 75%, 0.75);
+		}
+		.anchor-area {
+			position:absolute;
+			width:100%;
+			height:100%;
+			pointer-events: none;
+		}
+		.searching-area {
+			position: absolute;
+			border: solid 1px #8f8;
+			border-style: dashed;
+			background-color: hsla(0, 0%, 75%, 0.5);
+			/*pointer-events: none;*/
+		}
+	</style>
+</head>
+<body>
+
+	<div id="app">
+		<div style="margin-bottom: 8px;">
+			请在右侧图像上点击定位点附近区域，以自动识别定位点的外角点。
+		</div>
+		<div class="border">
+			<div class="image-container" :style="{width:width+'px'}">
+				<img class="paper-image" src="../data/anchor.jpg" crossorigin="anonymous" 
+					oncontextmenu="return false;" @load="onloadImage">
+			</div>
+		</div>
+		<div class="border">
+			<div class="canvas-container" :style="{width:width+'px'}" @mousedown="onMousedown">
+				<!-- <div class="anchor-src" :style="{left:(srcX*100)+'%', top:(srcY*100)+'%'}"></div> -->
+				<!-- <div class="anchor-des" :style="{left:(desX*100)+'%', top:(desY*100)+'%'}"></div> -->
+				<!-- <div class="searching-area" :style="areaStyle"></div> -->
+				<svg class="anchor-area">
+					<circle fill="hsla(0,100%,75%,0.75)" stroke="hsl(0,50%,50%)" r="2"
+						:cx="(srcX*100)+'%'" :cy="(srcY*100)+'%'" />
+					<circle fill="hsla(60,100%,75%,0.75)" stroke="hsl(60,50%,50%)" r="2"
+						:cx="(desX*100)+'%'" :cy="(desY*100)+'%'" />
+					<line stroke="hsl(100,75%,50%)" stroke-width="2"
+						:x1="(srcX*100)+'%'" :y1="(srcY*100)+'%'"
+						:x2="(desX*100)+'%'" :y2="(desY*100)+'%'"/>
+					<rect fill="hsla(0, 0%, 75%, 0.5)" stroke="#48f" stroke-width="1"
+						:x="(anchorRect.left*100)+'%'"
+						:y="(anchorRect.top*100)+'%'"
+						:width="(anchorRect.right-anchorRect.left)*100+'%'"
+						:height="(anchorRect.bottom-anchorRect.top)*100+'%'" />
+				</svg>
+			</div>
+		</div>
+	</div>
+
+	<script type="text/javascript">
+	new Vue({
+		el: '#app',
+		data: {
+			width: 600,
+			imageDom: null,
+			processor: null,
+			srcX: 0.10,
+			srcY: 0.05,
+			desX: 0.13,
+			desY: 0.05,
+			areaW: 0.10,
+			areaH: 0.04,
+			anchorRect: {left: 0.10 - 0.02, right: 0.10 + 0.02, top: 0.05 - 0.01, bottom: 0.05 + 0.01},
+		},
+		methods: {
+			onloadImage: function () {
+				this.processor = new Fip(this.imageDom, {
+					sizeLimit: this.width,
+					debugging: true,
+				}).binarize(0.6).denoise();
+				console.log('processor', this.processor);
+			    this.canvasContainer.appendChild(this.processor.canvasDom);
+			},
+			simClick: function () {
+				this.onMousedown({offsetX: 31, offsetY: 96});
+			},
+			onMousedown: function (ev) {
+				try {
+					// console.log('mouse pos: ', ev.offsetX, ev.offsetY);
+					var imageStyle = getComputedStyle(ev.target);
+					var nx = ev.offsetX / parseFloat(imageStyle.width),
+						ny = ev.offsetY / parseFloat(imageStyle.height);
+					this.anchorRect = this.processor.pickAnchor(nx, ny);
+
+					var imageWidth = parseFloat(getComputedStyle(this.imageDom).width);
+					var imageHeight = parseFloat(getComputedStyle(this.imageDom).height);
+					// console.log('x, y, w, h', ev.offsetX, ev.offsetY, imageWidth, imageHeight);
+					var quadX = ev.offsetX > imageWidth / 2 ? 1 : -1;
+					var quadY = ev.offsetY > imageHeight / 2 ? 1 : -1;
+					this.srcX = ev.offsetX / imageWidth;
+					this.srcY = ev.offsetY / imageHeight;
+					// console.log('srcX, srcY', this.srcX, this.srcY);
+					// this.desX = this.srcX + this.areaW / 2 * Math.random() * quadX;
+					// this.desY = this.srcY + this.areaH / 2 * Math.random() * quadY;
+					this.desX = quadX < 0 ? this.anchorRect.left : this.anchorRect.right;
+					this.desY = quadY < 0 ? this.anchorRect.top : this.anchorRect.bottom;
+					// console.log('desX, desY', this.desX, this.desY);
+				} catch(err) {
+					alert(err);
+				}
+			},
+		},
+		computed: {
+			areaStyle: function () {
+				return {
+					left: (this.anchorRect.left * 100) + '%',
+					top: (this.anchorRect.top * 100) + '%',
+					width: ((this.anchorRect.right - this.anchorRect.left) * 100) + '%',
+					height: ((this.anchorRect.bottom - this.anchorRect.top) * 100) + '%',
+				};
+			},
+		},
+		mounted: function () {
+			this.imageDom = this.$el.querySelector('.paper-image');
+			this.imageContainer = this.$el.querySelector('.image-container');
+			this.canvasContainer = this.$el.querySelector('.canvas-container');
+		},
+	});
+	</script>
+
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<style type="text/css">
+
+		.imageContainer {
+			position: relative;
+			display: inline-block;
+			border: solid 10px gray;
+			max-width: 50%;
+		}
+
+		.imageContainer img {
+			width: 100%;
+		}
+
+		.imageCuttedContainer {
+			display: inline-block;
+			border:solid 1px silver;
+			padding: 0 0 8px 0;
+			min-width: 200px;
+			min-height: 200px;
+			max-width: 700px;
+		    vertical-align: top;
+		    background-color: #e0e0e0;
+		}
+
+		.imageCuttedContainer img {
+			border: solid 1px gray;
+			margin: 5px 10px;
+			display: block;
+			width: calc(100% - 20px);
+		}
+
+		.imageCuttedContainer .num {
+			font-size: 14px;
+			margin: 12px 0 0 8px;
+		}
+
+	</style>
+	<script src="../src/fip.js"></script>
+	<script src="../src/fip.find-padding.js"></script>
+	<script src="../src/fip.find-gap.js"></script>
+	<script src="../src/paper-cutter.js"></script>
+</head>
+<body>
+
+<div style="margin-bottom: 8px;">
+	点击下列试卷来划分小题
+</div>
+<div class="imageContainer">
+	<img src="../data/padding-gap.jpg">
+</div>
+<div class="imageCuttedContainer"></div>
+
+<script type="text/javascript">
+
+	var imageContainer = document.querySelector('.imageContainer img');
+	var paperCutter = new PaperCutter(imageContainer, {
+		onchange: cutImages,
+		autoReload: true,
+	});
+
+	function cutImages () {
+		var imageCuttedContainer = document.querySelector('.imageCuttedContainer');
+		imageCuttedContainer.innerHTML = '';
+
+		if (!paperCutter) return;
+		var cuttedImageSrcs = paperCutter.cutToDataUrls();
+
+		var totalDom = document.createElement('div');
+		totalDom.className = 'num';
+		totalDom.innerText = '共 ' + cuttedImageSrcs.length + ' 道题';
+		imageCuttedContainer.appendChild(totalDom);
+
+		cuttedImageSrcs.forEach(function (cuttedImageSrc, index) {
+			var numDom = document.createElement('div');
+			numDom.className = 'num';
+			numDom.innerHTML = '第 ' + (index + 1) + ' 题';
+			imageCuttedContainer.appendChild(numDom);
+
+			var imageDom = document.createElement('img');
+			imageDom.src = cuttedImageSrc;
+			imageCuttedContainer.appendChild(imageDom);
+		});
+	}
+
+	var spanPaperNum = document.querySelector('#spanPaperNum');
+	var imageDom = document.querySelector('.imageContainer img');
+
+</script>
+</body>
+</html>
